@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+*.suo
+*.userosscache
+*.userprefs
+.vscode/
+
+# ASP.NET
+wwwroot/
+
+# Angular
+rate-limiter-ui/node_modules/
+rate-limiter-ui/dist/
+rate-limiter-ui/.angular/cache/
+rate-limiter-ui/tmp/
+rate-limiter-ui/out-tsc/
+npm-debug.log
+yarn-error.log
+
+# Claude Code local config
+.claude/
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
+*.log

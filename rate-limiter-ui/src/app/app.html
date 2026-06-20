@@ -1,0 +1,158 @@
+<div class="shell">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-icon">⚡</span>
+      <div>
+        <h1>API Rate Limiter</h1>
+        <small>Provn Challenge #101 — Cerbo</small>
+      </div>
+    </div>
+    <span class="topbar-badge">In-Memory · Sliding Window</span>
+  </header>
+
+  <main class="grid">
+
+    <!-- ── Controls ── -->
+    <section class="card controls">
+      <h2 class="card-title">Request Config</h2>
+
+      <div class="field">
+        <label>Client ID</label>
+        <input type="text" [ngModel]="clientId()" (ngModelChange)="clientId.set($event)" placeholder="client-001" />
+      </div>
+
+      <div class="field">
+        <label>Client Tier</label>
+        <select [ngModel]="clientTier()" (ngModelChange)="clientTier.set($event)">
+          @for (t of tiers; track t) {
+            <option [value]="t">{{ t | titlecase }}</option>
+          }
+        </select>
+        <span class="hint">
+          @switch (clientTier()) {
+            @case ('standard')   { 10 req / 60 s }
+            @case ('premium')    { 50 req / 60 s }
+            @case ('enterprise') { 200 req / 60 s }
+          }
+        </span>
+      </div>
+
+      <div class="field">
+        <label>Endpoint</label>
+        <select [ngModel]="selected()" (ngModelChange)="selected.set($event)">
+          @for (ep of endpoints; track ep.label) {
+            <option [ngValue]="ep">{{ ep.label }}</option>
+          }
+        </select>
+        @if (selected().method !== 'GET') {
+          <span class="hint warn">Write ops have stricter per-endpoint limits</span>
+        }
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" (click)="sendRequest()" [disabled]="isLoading()">
+          {{ isLoading() ? 'Sending…' : 'Send Request' }}
+        </button>
+        <button class="btn secondary" (click)="burstTest()" [disabled]="isBursting()">
+          {{ isBursting() ? 'Bursting…' : '⚡ Burst × 15' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Response ── -->
+    <section class="card response">
+      <h2 class="card-title">Response</h2>
+
+      @if (lastStatus() !== null) {
+        <div class="status-row">
+          <span class="status-badge" [class.ok]="lastStatus()! < 400" [class.err]="lastStatus()! >= 400">
+            {{ lastStatus() }}
+            {{ lastStatus()! < 400 ? '✓ OK' : lastStatus() === 429 ? '✗ Too Many Requests' : '✗ Error' }}
+          </span>
+        </div>
+
+        @if (rateLimitInfo()) {
+          <div class="rl-grid">
+            <div class="rl-cell">
+              <span class="rl-label">Limit</span>
+              <span class="rl-value">{{ rateLimitInfo()!.limit }}</span>
+            </div>
+            <div class="rl-cell">
+              <span class="rl-label">Remaining</span>
+              <span class="rl-value" [class.zero]="rateLimitInfo()!.remaining === 0">
+                {{ rateLimitInfo()!.remaining }}
+              </span>
+            </div>
+            <div class="rl-cell">
+              <span class="rl-label">Reset</span>
+              <span class="rl-value">{{ resetTime() }}</span>
+            </div>
+            @if (rateLimitInfo()!.retryAfter) {
+              <div class="rl-cell warn">
+                <span class="rl-label">Retry-After</span>
+                <span class="rl-value">{{ rateLimitInfo()!.retryAfter }}s</span>
+              </div>
+            }
+          </div>
+
+          @if (rateLimitInfo()!.limit > 0) {
+            <div class="progress-track">
+              <div class="progress-fill"
+                [style.width.%]="usagePercent()"
+                [class.danger]="rateLimitInfo()!.remaining === 0">
+              </div>
+            </div>
+            <p class="progress-label">
+              {{ rateLimitInfo()!.limit - rateLimitInfo()!.remaining }} / {{ rateLimitInfo()!.limit }} used this window
+            </p>
+          }
+        }
+
+        <pre class="response-body">{{ lastBody() | json }}</pre>
+      } @else {
+        <p class="empty">Send a request to see the response here.</p>
+      }
+    </section>
+
+    <!-- ── Log ── -->
+    <section class="card log">
+      <div class="card-title-row">
+        <h2 class="card-title">Request Log</h2>
+        <button class="btn ghost small" (click)="clearLogs()">Clear</button>
+      </div>
+
+      @if (logs().length > 0) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Status</th>
+                <th>Remaining</th>
+                <th>Retry-After</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs(); track log.id) {
+                <tr [class.row-err]="log.status === 429">
+                  <td class="mono">{{ log.timestamp | date:'HH:mm:ss.SSS' }}</td>
+                  <td><span class="method-tag" [class]="'m-' + log.method.toLowerCase()">{{ log.method }}</span></td>
+                  <td class="mono">{{ log.endpoint }}</td>
+                  <td [class.ok]="log.status < 400" [class.err]="log.status >= 400">{{ log.status }}</td>
+                  <td>{{ log.remaining ?? '–' }}</td>
+                  <td>{{ log.retryAfter ? log.retryAfter + 's' : '–' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="empty">No requests yet. Send one above.</p>
+      }
+    </section>
+
+  </main>
+</div>
