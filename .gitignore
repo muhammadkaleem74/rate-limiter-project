@@ -20,9 +20,6 @@ rate-limiter-ui/out-tsc/
 npm-debug.log
 yarn-error.log
 
-# Claude Code local config
-.claude/
-
 # Miscellaneous
 .DS_Store
 Thumbs.db
